@@ -34,34 +34,68 @@ fastify.post('/simulation/run', async (request, reply) => {
           budget: 1000000
       };
 
-      // Mock population
-      const citizens: Citizen[] = Array.from({length: 1000}).map((_, i) => ({
-          id: `c_${i}`,
-          age: 20 + Math.random() * 40,
-          educationLevel: Math.random(),
-          skillLevel: Math.random(),
-          income: 0,
-          savings: Math.random() * 10000,
-          consumptionTendency: 0.5 + Math.random() * 0.5,
-          employmentStatus: 'unemployed',
-          employerId: null
+      // Build a realistically bootstrapped population
+      // ~95% employment rate to start, matching a healthy economy baseline
+      const NUM_CITIZENS = 1000;
+      const NUM_BUSINESSES = 50;
+      const INITIAL_EMPLOYMENT_RATE = 0.95;
+
+      const businesses: Business[] = Array.from({ length: NUM_BUSINESSES }).map((_, i) => ({
+          id: `b_${i}`,
+          revenue: 50000 + Math.random() * 100000,
+          productivity: 0.5 + Math.random() * 0.5,
+          workers: [] as string[],
+          wageLevel: 35000 + Math.random() * 25000,
+          operatingCosts: 0,
+          prices: 10 + Math.random() * 5,
       }));
 
-      const businesses: Business[] = Array.from({length: 50}).map((_, i) => ({
-          id: `b_${i}`,
-          revenue: Math.random() * 100000,
-          productivity: Math.random(),
-          workers: [],
-          wageLevel: 40000 + Math.random() * 20000,
-          operatingCosts: 0,
-          prices: 10
-      }));
+      const citizens: Citizen[] = Array.from({ length: NUM_CITIZENS }).map((_, i) => {
+          const skill = 0.3 + Math.random() * 0.7;
+          const employed = Math.random() < INITIAL_EMPLOYMENT_RATE;
+          let employerId: string | null = null;
+          if (employed) {
+              // Assign to a random business
+              const biz = businesses[i % NUM_BUSINESSES];
+              employerId = biz.id;
+              biz.workers.push(`c_${i}`);
+          }
+          return {
+              id: `c_${i}`,
+              age: 22 + Math.random() * 38,
+              educationLevel: 0.3 + Math.random() * 0.7,
+              skillLevel: skill,
+              income: employed ? 0 : 0, // will be calculated in first year
+              savings: 2000 + Math.random() * 20000,
+              consumptionTendency: 0.5 + Math.random() * 0.4,
+              employmentStatus: employed ? 'employed' : 'unemployed',
+              employerId,
+          };
+      });
+
 
       // In a real backend, this would be an async job placed on a queue (e.g. BullMQ)
       const mc = new MonteCarlo(10, 10, citizens, businesses, govSettings);
       const results = mc.run();
 
-      // Example of storing results asynchronously
+      // Compute confidence bands (min/max) across all 10 scenario runs per year
+      const confidenceBand = results.meanMetrics.map((mean, yearIdx) => {
+          const yearSlice = results.scenarios.map(scen => scen[yearIdx]);
+          return {
+              year: mean.year,
+              gdpMean:          mean.gdp,
+              gdpMin:           Math.min(...yearSlice.map(m => m.gdp)),
+              gdpMax:           Math.max(...yearSlice.map(m => m.gdp)),
+              unemploymentMean: mean.unemploymentRate,
+              unemploymentMin:  Math.min(...yearSlice.map(m => m.unemploymentRate)),
+              unemploymentMax:  Math.max(...yearSlice.map(m => m.unemploymentRate)),
+              incomeMean:       mean.medianIncome,
+              incomeMin:        Math.min(...yearSlice.map(m => m.medianIncome)),
+              incomeMax:        Math.max(...yearSlice.map(m => m.medianIncome)),
+          };
+      });
+
+      // Store results asynchronously
       let resultId = 'mock_id_' + Date.now();
       try {
           const resultDocRef = await db.collection('simulation_runs').add({
@@ -73,7 +107,8 @@ fastify.post('/simulation/run', async (request, reply) => {
           fastify.log.warn('Could not write to Firestore (likely missing credentials). Returning mock results.');
       }
 
-      return { success: true, id: resultId, results: results.meanMetrics };
+      return { success: true, id: resultId, results: results.meanMetrics, confidenceBand };
+
   } catch (err) {
       fastify.log.error(err);
       return reply.code(500).send({ error: 'Internal Server Error' });

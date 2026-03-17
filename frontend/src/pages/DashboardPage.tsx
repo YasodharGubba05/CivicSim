@@ -1,17 +1,21 @@
 import { useAuth } from '../contexts/AuthContext';
 import { Activity, BarChart3, Zap, FileText, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const statCards = [
-  { label: 'Simulations Run', value: '—', color: 'blue' },
-  { label: 'Scenarios Saved', value: '—', color: 'emerald' },
-  { label: 'Avg. GDP Growth', value: '—', color: 'violet' },
-  { label: 'Lowest Unemployment', value: '—', color: 'amber' },
-];
+import { usePolicyStore } from '../store/policyStore';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { simulationResults, simulationsCount } = usePolicyStore();
+
+  const lastYear = simulationResults.length > 0 ? simulationResults[simulationResults.length - 1] : null;
+
+  const statCards = [
+    { label: 'Simulations Run', value: simulationsCount > 0 ? simulationsCount.toString() : '—', color: 'blue' },
+    { label: 'Last Run GDP', value: lastYear ? `$${lastYear.gdp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—', color: 'emerald' },
+    { label: 'Last Unemployment', value: lastYear ? `${(lastYear.unemploymentRate * 100).toFixed(1)}%` : '—', color: 'violet' },
+    { label: 'Last Gini Index', value: lastYear ? lastYear.giniIndex.toFixed(3) : '—', color: 'amber' },
+  ];
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -96,3 +100,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
