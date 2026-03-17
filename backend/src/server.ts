@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import { db } from './firebase';
 
 // Import our simulation engine as a package
-import { Simulation, MonteCarlo, Citizen, Business, Government } from 'simulation-engine';
+import { Simulation, MonteCarlo, Optimizer, Citizen, Business, Government } from 'simulation-engine';
 
 const fastify = Fastify({
   logger: true
@@ -74,6 +74,62 @@ fastify.post('/simulation/run', async (request, reply) => {
       }
 
       return { success: true, id: resultId, results: results.meanMetrics };
+  } catch (err) {
+      fastify.log.error(err);
+      return reply.code(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+/**
+ * Endpoint to run a policy optimization
+ */
+fastify.post('/optimization/run', async (request, reply) => {
+  try {
+      const body = request.body as any || {};
+      const target = body.target || 'maximizeGdp';
+      const baseGovSettings: Government = {
+          id: 'gov',
+          incomeTaxRate: body.baseIncomeTaxRate ?? 0.20,
+          corporateTaxRate: body.baseCorporateTaxRate ?? 0.15,
+          minimumWage: body.baseMinimumWage ?? 15,
+          subsidyPolicies: body.baseSubsidyPolicies ?? 0,
+          universalBasicIncome: body.baseUniversalBasicIncome ?? 0,
+          budget: 1000000
+      };
+
+      // Mock population for optimization baseline
+      const citizens: Citizen[] = Array.from({length: 200}).map((_, i) => ({
+          id: `c_${i}`, age: 30, educationLevel: 0.5, skillLevel: 0.5, income: 0,
+          savings: 1000, consumptionTendency: 0.8, employmentStatus: 'unemployed', employerId: null
+      }));
+
+      const businesses: Business[] = Array.from({length: 10}).map((_, i) => ({
+          id: `b_${i}`, revenue: 50000, productivity: 0.5, workers: [],
+          wageLevel: 45000, operatingCosts: 0, prices: 10
+      }));
+
+      // In real code, this could be long-running
+      const optimizedGov = Optimizer.optimize(target, citizens, businesses, baseGovSettings);
+      
+      return { success: true, optimizedPolicy: optimizedGov };
+  } catch (err) {
+      fastify.log.error(err);
+      return reply.code(500).send({ error: 'Internal Server Error' });
+  }
+});
+
+/**
+ * Endpoint to generate mock LLM insights
+ */
+fastify.post('/insights/generate', async (request, reply) => {
+  try {
+      const body = request.body as any || {};
+      const metrics = body.metrics;
+      
+      // In a real app, send `metrics` to OpenAI/Anthropic API to get a summary
+      const mockInsight = "Based on the simulation results, implementing a Universal Basic Income led to a 15% increase in baseline consumption among lower-income brackets, though it slightly elevated the inflation rate. The current Gini coefficient suggests moderate inequality.";
+      
+      return { success: true, insight: mockInsight };
   } catch (err) {
       fastify.log.error(err);
       return reply.code(500).send({ error: 'Internal Server Error' });
