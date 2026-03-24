@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
-import { Activity, BarChart3, Zap, FileText, ArrowRight } from 'lucide-react';
+import { Activity, BarChart3, Zap, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePolicyStore } from '../store/policyStore';
 
@@ -9,16 +9,17 @@ export default function DashboardPage() {
   const { simulationResults, simulationsCount } = usePolicyStore();
 
   const lastYear = simulationResults.length > 0 ? simulationResults[simulationResults.length - 1] : null;
+  const hasData = simulationsCount > 0;
 
   const statCards = [
-    { label: 'Simulations Run', value: simulationsCount > 0 ? simulationsCount.toString() : '—', color: 'blue' },
+    { label: 'Simulations Run', value: hasData ? simulationsCount.toString() : '—', color: 'blue' },
     { label: 'Last Run GDP', value: lastYear ? `$${lastYear.gdp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—', color: 'emerald' },
     { label: 'Last Unemployment', value: lastYear ? `${(lastYear.unemploymentRate * 100).toFixed(1)}%` : '—', color: 'violet' },
     { label: 'Last Gini Index', value: lastYear ? lastYear.giniIndex.toFixed(3) : '—', color: 'amber' },
   ];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto page-enter">
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-white mb-2">
@@ -34,7 +35,7 @@ export default function DashboardPage() {
         {statCards.map((s) => (
           <div
             key={s.label}
-            className="bg-slate-900 border border-white/5 rounded-2xl p-5"
+            className="bg-slate-900 border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors"
           >
             <p className="text-slate-500 text-xs uppercase tracking-widest mb-3">{s.label}</p>
             <p className="text-2xl font-bold text-white">{s.value}</p>
@@ -61,10 +62,10 @@ export default function DashboardPage() {
             color: 'emerald',
           },
           {
-            icon: FileText,
-            title: 'Explore Scenarios',
-            desc: 'Browse the public library of pre-built policy scenarios.',
-            action: () => navigate('/configurator'),
+            icon: Clock,
+            title: 'View History',
+            desc: 'Browse all past simulation runs stored in your account.',
+            action: () => navigate('/history'),
             color: 'violet',
           },
         ].map((card) => (
@@ -85,6 +86,33 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Recent Activity (placeholder when no data) */}
+      {hasData && simulationResults.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold text-white mb-4">Last Simulation Summary</h2>
+          <div className="bg-slate-900 border border-white/5 rounded-2xl p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Years Simulated</p>
+                <p className="text-lg font-bold text-white">{simulationResults.length}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Final GDP</p>
+                <p className="text-lg font-bold text-blue-400">${lastYear ? (lastYear.gdp / 1000).toFixed(0) + 'k' : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Unemployment</p>
+                <p className="text-lg font-bold text-red-400">{lastYear ? (lastYear.unemploymentRate * 100).toFixed(1) + '%' : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Gini Index</p>
+                <p className="text-lg font-bold text-violet-400">{lastYear ? lastYear.giniIndex.toFixed(3) : '—'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Info Banner */}
       <div className="mt-8 bg-gradient-to-r from-blue-600/20 to-violet-600/20 border border-blue-500/20 rounded-2xl p-6 flex items-start gap-4">
         <Activity className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -100,4 +128,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

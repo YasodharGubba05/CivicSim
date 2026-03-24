@@ -6,3 +6,4 @@ export * from './models/Metrics';
 export * from './engine/Simulation';
 export * from './engine/MonteCarlo';
 export * from './engine/Optimizer';
+export * from './utils/helpers';

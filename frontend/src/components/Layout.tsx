@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Activity, LayoutDashboard, SlidersHorizontal, FileText, LogOut } from 'lucide-react';
+import { Activity, LayoutDashboard, SlidersHorizontal, FileText, Clock, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/configurator', icon: SlidersHorizontal, label: 'Configurator' },
   { to: '/reports', icon: FileText, label: 'Reports' },
+  { to: '/history', icon: Clock, label: 'History' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-950 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-white/5 flex flex-col h-screen sticky top-0">
+      <aside className="w-64 bg-slate-900 border-r border-white/5 flex flex-col h-screen sticky top-0 flex-shrink-0">
         {/* Brand */}
         <div className="p-6 border-b border-white/5 flex items-center gap-3">
           <div className="p-1.5 bg-blue-600 rounded-lg">

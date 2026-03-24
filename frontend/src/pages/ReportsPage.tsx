@@ -50,7 +50,7 @@ ${hasResults && lastYear ? `## Final Year Results (Year ${lastYear.year})
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto page-enter">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Reports</h1>
