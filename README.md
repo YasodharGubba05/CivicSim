@@ -59,5 +59,4 @@ npm run dev -w frontend
 - **Backend**: Implements a clean layered architecture separating HTTP concerns from business logic.
 - **Frontend**: Uses Zustand for centralized state management, enabling complex baseline comparisons without prop-drilling.
 
-## 📜 License
-MIT
+
