@@ -2,7 +2,7 @@
 
 CivicSim is an agent-based economic policy simulator that allows users to model the impact of government policies (taxes, wages, welfare) on a synthetic population of 1,000 AI citizens over a 10-year period.
 
-![Dashboard](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3N4eHN4eHN4eHN4eHN4eHN4eHN4eHN4eHN4eHN4eHN4eHN4eHNxJmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKVun7XYUCix_fW/giphy.gif)
+
 
 ## 🚀 Key Features
 
