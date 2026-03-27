@@ -4,6 +4,7 @@ import {
   runOptimization,
   generateInsight,
   getSimulationHistory,
+  deleteSimulation,
   type SimulationRunRequest,
   type OptimizationRunRequest,
   type InsightsRequest,
@@ -12,7 +13,7 @@ import {
 export async function simulationRunHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const body = (request.body as SimulationRunRequest) || {};
-    const result = await runSimulation(body);
+    const result = await runSimulation(body, request.uid, request.userEmail);
     return result;
   } catch (err) {
     request.log.error(err);
@@ -44,7 +45,18 @@ export async function insightsHandler(request: FastifyRequest, reply: FastifyRep
 
 export async function historyHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const result = await getSimulationHistory();
+    const result = await getSimulationHistory(request.uid);
+    return result;
+  } catch (err) {
+    request.log.error(err);
+    return reply.code(500).send({ error: 'Internal Server Error' });
+  }
+}
+
+export async function simulationDeleteHandler(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { id } = request.params as { id: string };
+    const result = await deleteSimulation(id, request.uid);
     return result;
   } catch (err) {
     request.log.error(err);

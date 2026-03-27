@@ -4,12 +4,15 @@ import {
   optimizationRunHandler,
   insightsHandler,
   historyHandler,
+  simulationDeleteHandler,
 } from '../controllers/simulationController';
+import { verifyToken } from '../middleware/auth';
 
 const simulationRunSchema = {
   body: {
     type: 'object',
     properties: {
+      name: { type: 'string' },
       incomeTaxRate: { type: 'number', minimum: 0, maximum: 1 },
       corporateTaxRate: { type: 'number', minimum: 0, maximum: 1 },
       minimumWage: { type: 'number', minimum: 0 },
@@ -34,8 +37,10 @@ const optimizationRunSchema = {
 };
 
 export default async function simulationRoutes(fastify: FastifyInstance) {
-  fastify.post('/simulation/run', { schema: simulationRunSchema }, simulationRunHandler);
-  fastify.get('/simulation/history', historyHandler);
-  fastify.post('/optimization/run', { schema: optimizationRunSchema }, optimizationRunHandler);
+  fastify.post('/simulation/run', { schema: simulationRunSchema, preHandler: verifyToken }, simulationRunHandler);
+  fastify.get('/simulation/history', { preHandler: verifyToken }, historyHandler);
+  fastify.delete('/simulation/:id', { preHandler: verifyToken }, simulationDeleteHandler);
+  fastify.post('/optimization/run', { schema: optimizationRunSchema, preHandler: verifyToken }, optimizationRunHandler);
   fastify.post('/insights/generate', insightsHandler);
 }
+

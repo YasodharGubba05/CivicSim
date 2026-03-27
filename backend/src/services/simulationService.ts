@@ -1,9 +1,12 @@
 import { Simulation, MonteCarlo, Optimizer, Citizen, Business, Government } from 'simulation-engine';
 import { db } from '../firebase';
+import { sendSimulationCompleteEmail } from './emailService';
+import 'dotenv/config';
 
 // ── Request types ──────────────────────────────────────────────────────────
 
 export interface SimulationRunRequest {
+  name?: string;
   incomeTaxRate?: number;
   corporateTaxRate?: number;
   minimumWage?: number;
@@ -68,7 +71,7 @@ function buildPopulation(govSettings: Government) {
 
 // ── Service Functions ──────────────────────────────────────────────────────
 
-export async function runSimulation(body: SimulationRunRequest) {
+export async function runSimulation(body: SimulationRunRequest, userId?: string, userEmail?: string) {
   const govSettings: Government = {
     id: 'gov',
     incomeTaxRate: body.incomeTaxRate ?? 0.20,
@@ -85,26 +88,29 @@ export async function runSimulation(body: SimulationRunRequest) {
   const results = mc.run();
 
   // Compute confidence bands
-  const confidenceBand = results.meanMetrics.map((mean, yearIdx) => {
-    const yearSlice = results.scenarios.map((scen) => scen[yearIdx]);
+  const confidenceBand = results.meanMetrics.map((mean: any, yearIdx: any) => {
+    const yearSlice = results.scenarios.map((scen: any) => scen[yearIdx]);
     return {
       year: mean.year,
       gdpMean:          mean.gdp,
-      gdpMin:           Math.min(...yearSlice.map((m) => m.gdp)),
-      gdpMax:           Math.max(...yearSlice.map((m) => m.gdp)),
+      gdpMin:           Math.min(...yearSlice.map((m: any) => m.gdp)),
+      gdpMax:           Math.max(...yearSlice.map((m: any) => m.gdp)),
       unemploymentMean: mean.unemploymentRate,
-      unemploymentMin:  Math.min(...yearSlice.map((m) => m.unemploymentRate)),
-      unemploymentMax:  Math.max(...yearSlice.map((m) => m.unemploymentRate)),
+      unemploymentMin:  Math.min(...yearSlice.map((m: any) => m.unemploymentRate)),
+      unemploymentMax:  Math.max(...yearSlice.map((m: any) => m.unemploymentRate)),
       incomeMean:       mean.medianIncome,
-      incomeMin:        Math.min(...yearSlice.map((m) => m.medianIncome)),
-      incomeMax:        Math.max(...yearSlice.map((m) => m.medianIncome)),
+      incomeMin:        Math.min(...yearSlice.map((m: any) => m.medianIncome)),
+      incomeMax:        Math.max(...yearSlice.map((m: any) => m.medianIncome)),
     };
   });
 
   // Persist to Firestore (best-effort)
   let resultId = 'mock_id_' + Date.now();
+  const simName = body.name || `Simulation ${new Date().toLocaleDateString()}`;
   try {
     const docRef = await db.collection('simulation_runs').add({
+      name: simName,
+      userId: userId || null,
       createdAt: new Date().toISOString(),
       policies: {
         incomeTaxRate: govSettings.incomeTaxRate,
@@ -118,6 +124,23 @@ export async function runSimulation(body: SimulationRunRequest) {
     resultId = docRef.id;
   } catch {
     // Firestore may not be configured — that's okay
+  }
+
+  // Send completion email (fire-and-forget, never blocks the response)
+  if (userEmail) {
+    const finalMetrics = results.meanMetrics[results.meanMetrics.length - 1];
+    sendSimulationCompleteEmail(userEmail, {
+      simulationName: simName,
+      policies: {
+        incomeTaxRate: govSettings.incomeTaxRate,
+        corporateTaxRate: govSettings.corporateTaxRate,
+        minimumWage: govSettings.minimumWage,
+        subsidyPolicies: govSettings.subsidyPolicies,
+        universalBasicIncome: govSettings.universalBasicIncome,
+      },
+      finalMetrics,
+      simulationId: resultId,
+    }).catch(() => {});
   }
 
   return { success: true, id: resultId, results: results.meanMetrics, confidenceBand };
@@ -173,21 +196,37 @@ export function generateInsight(body: InsightsRequest) {
   return { success: true, insight };
 }
 
-export async function getSimulationHistory() {
+export async function getSimulationHistory(userId?: string) {
   try {
-    const snapshot = await db
-      .collection('simulation_runs')
-      .orderBy('createdAt', 'desc')
-      .limit(20)
-      .get();
-
-    const runs = snapshot.docs.map((doc) => ({
+    let query = db.collection('simulation_runs').orderBy('createdAt', 'desc').limit(20);
+    if (userId) {
+      query = db.collection('simulation_runs').where('userId', '==', userId).orderBy('createdAt', 'desc').limit(20);
+    }
+    const snapshot = await query.get();
+    const runs = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
     }));
-
     return { success: true, runs };
   } catch {
     return { success: true, runs: [] };
+  }
+}
+
+export async function deleteSimulation(id: string, userId?: string) {
+  try {
+    const ref = db.collection('simulation_runs').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return { success: false, error: 'Not found' };
+    }
+    const data = snap.data();
+    if (userId && data?.userId && data.userId !== userId) {
+      return { success: false, error: 'Forbidden' };
+    }
+    await ref.delete();
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Failed to delete' };
   }
 }

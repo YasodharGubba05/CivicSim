@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, ChevronRight, TrendingUp, Users, Activity, BarChart3 } from 'lucide-react';
-
-const API = 'http://localhost:3000';
+import { Clock, ChevronRight, TrendingUp, Users, Activity, BarChart3, Trash2 } from 'lucide-react';
+import { apiFetch, API } from '../lib/apiClient';
 
 interface HistoryRun {
   id: string;
+  name?: string;
   createdAt: string;
   policies?: {
     incomeTaxRate: number;
@@ -26,6 +26,7 @@ export default function HistoryPage() {
   const [runs, setRuns] = useState<HistoryRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
@@ -34,13 +35,29 @@ export default function HistoryPage() {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/simulation/history`);
+      const res = await apiFetch(`${API}/simulation/history`);
       const data = await res.json();
       if (data.success) setRuns(data.runs);
     } catch {
       // Backend may not be running or Firestore not configured
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await apiFetch(`${API}/simulation/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setRuns((prev) => prev.filter((r) => r.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -101,7 +118,7 @@ export default function HistoryPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium text-sm truncate">
-                      Simulation Run
+                      {run.name || 'Simulation Run'}
                     </p>
                     <p className="text-slate-500 text-xs">
                       {new Date(run.createdAt).toLocaleString()}
@@ -125,6 +142,14 @@ export default function HistoryPage() {
                   <ChevronRight
                     className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
                   />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(run.id); }}
+                    disabled={deletingId === run.id}
+                    aria-label="Delete run"
+                    className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-40 flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </button>
 
                 {/* Expanded Detail */}

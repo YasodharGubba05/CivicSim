@@ -1,100 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-slate-800;
+  :root {
+    /* Surface */
+    --bg:      #09090b;   /* zinc-950 */
+    --surface: #111113;   /* card bg  */
+    --raised:  #18181b;   /* zinc-900 */
+    --border:  #27272a;   /* zinc-800 */
+    --border-subtle: rgba(255,255,255,0.06);
+
+    /* Text */
+    --text-1: #fafafa;
+    --text-2: #a1a1aa;
+    --text-3: #52525b;
+
+    /* Accent — used sparingly */
+    --accent:       #10b981;
+    --accent-dim:   rgba(16,185,129,0.12);
+    --accent-border:rgba(16,185,129,0.2);
   }
 
+  * { box-sizing: border-box; }
+
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    background: var(--bg);
+    color: var(--text-1);
+    line-height: 1.6;
   }
 
-  /* Custom scrollbar for dark theme */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  ::-webkit-scrollbar          { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track    { background: transparent; }
+  ::-webkit-scrollbar-thumb    { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+}
+
+@layer components {
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
   }
-  ::-webkit-scrollbar-track {
-    background: transparent;
+
+  /* Input */
+  .input {
+    width: 100%;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text-1);
+    outline: none;
+    transition: border-color 0.15s ease;
   }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-full;
+  .input::placeholder { color: var(--text-3); }
+  .input:focus { border-color: var(--accent); }
+
+  .input-icon {
+    padding-left: 38px;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600;
+
+  /* Button — primary */
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    outline: none;
+  }
+  .btn-solid {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .btn-solid:hover { filter: brightness(1.1); }
+  .btn-solid:active { filter: brightness(0.95); }
+  .btn-solid:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+
+  .btn-outline {
+    background: var(--raised);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .btn-outline:hover { border-color: #3f3f46; color: var(--text-1); background: #1c1c1f; }
+  .btn-outline:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* Nav */
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 450;
+    color: var(--text-2);
+    transition: all 0.12s ease;
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .nav-link:hover { color: var(--text-1); background: var(--raised); }
+  .nav-link.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+  }
+
+  /* Stat card */
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
   }
 }
 
 @layer utilities {
-  /* Shimmer loading skeleton */
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      theme('colors.slate.800') 0%,
-      theme('colors.slate.700') 40%,
-      theme('colors.slate.800') 80%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+  /* Animations */
+  .page-enter {
+    animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
+  .shimmer {
+    background: linear-gradient(90deg, var(--surface) 0%, var(--raised) 50%, var(--surface) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease infinite;
+  }
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
+    0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
 
-  /* Subtle page-enter animation */
-  .page-enter {
-    animation: pageEnter 0.3s ease-out;
-  }
+  .toast-enter { animation: toastIn  0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards; }
+  .toast-exit  { animation: toastOut 0.2s ease-in forwards; }
+  @keyframes toastIn  { from { opacity:0; transform: translateY(-10px) scale(0.96); } to   { opacity:1; transform: translateY(0) scale(1); } }
+  @keyframes toastOut { from { opacity:1; transform: translateY(0); } to { opacity:0; transform: translateY(-6px); } }
 
-  @keyframes pageEnter {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  /* Typography helpers */
+  .text-muted   { color: var(--text-2); }
+  .text-faint   { color: var(--text-3); }
+  .text-accent  { color: var(--accent); }
+  .font-tabular { font-variant-numeric: tabular-nums; }
 
-  /* Toast slide-in */
-  .toast-enter {
-    animation: toastSlideIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
-  }
-
-  .toast-exit {
-    animation: toastSlideOut 0.25s ease-in forwards;
-  }
-
-  @keyframes toastSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(-12px) scale(0.96);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes toastSlideOut {
-    from {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    to {
-      opacity: 0;
-      transform: translateY(-8px) scale(0.96);
-    }
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
   }
 }

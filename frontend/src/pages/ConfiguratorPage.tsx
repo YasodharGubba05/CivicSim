@@ -9,8 +9,7 @@ import {
   Sparkles, BookmarkPlus, BookmarkX, ChevronDown, ChevronUp, ArrowUp, ArrowDown,
   Menu, X,
 } from 'lucide-react';
-
-const API = 'http://localhost:3000';
+import { apiFetch, API } from '../lib/apiClient';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -192,6 +191,7 @@ export default function ConfiguratorPage() {
   const [insight, setInsight] = useState<string | null>(null);
   const [optimizedPolicy, setOptimizedPolicy] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [simName, setSimName] = useState('');
   const [optimizeGoal, setOptimizeGoal] = useState<'maximizeGdp' | 'minimizeUnemployment' | 'minimizeInequality'>('maximizeGdp');
   const [activeTab, setActiveTab] = useState<'gdp' | 'unemployment' | 'income'>('gdp');
   const [showPresets, setShowPresets] = useState(true);
@@ -203,10 +203,9 @@ export default function ConfiguratorPage() {
     setInsight(null);
     setOptimizedPolicy(null);
     try {
-      const res = await fetch(`${API}/simulation/run`, {
+      const res = await apiFetch(`${API}/simulation/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ incomeTaxRate, corporateTaxRate, minimumWage, universalBasicIncome, subsidyPolicies }),
+        body: JSON.stringify({ name: simName || undefined, incomeTaxRate, corporateTaxRate, minimumWage, universalBasicIncome, subsidyPolicies }),
       });
       const data = await res.json();
       if (data.success && data.results) {
@@ -215,9 +214,8 @@ export default function ConfiguratorPage() {
         persistResults(data.results, data.id ?? 'local_' + Date.now(), data.confidenceBand ?? []);
 
         // Auto-fetch insights
-        const insightRes = await fetch(`${API}/insights/generate`, {
+        const insightRes = await apiFetch(`${API}/insights/generate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ metrics: data.results }),
         });
         const insightData = await insightRes.json();
@@ -233,9 +231,8 @@ export default function ConfiguratorPage() {
   const runOptimize = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/optimization/run`, {
+      const res = await apiFetch(`${API}/optimization/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target: optimizeGoal,
           baseIncomeTaxRate: incomeTaxRate,
@@ -370,7 +367,17 @@ export default function ConfiguratorPage() {
         </div>
 
         {/* ── Actions ── */}
-        <div className="p-6 border-t border-white/5 space-y-2.5">
+        <div className="p-6 border-t border-white/5 space-y-3">
+          {/* Run Name Input */}
+          <div>
+            <input
+              type="text"
+              value={simName}
+              onChange={(e) => setSimName(e.target.value)}
+              placeholder="Simulation name (optional)"
+              className="w-full bg-slate-800 border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-slate-600"
+            />
+          </div>
           <button onClick={runSimulation} disabled={loading}
             className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
             <Zap className="w-4 h-4" />

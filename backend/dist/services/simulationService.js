@@ -4,6 +4,7 @@ exports.runSimulation = runSimulation;
 exports.runOptimization = runOptimization;
 exports.generateInsight = generateInsight;
 exports.getSimulationHistory = getSimulationHistory;
+exports.deleteSimulation = deleteSimulation;
 const simulation_engine_1 = require("simulation-engine");
 const firebase_1 = require("../firebase");
 // ── Population Factory ─────────────────────────────────────────────────────
@@ -44,7 +45,7 @@ function buildPopulation(govSettings) {
     return { citizens, businesses };
 }
 // ── Service Functions ──────────────────────────────────────────────────────
-async function runSimulation(body) {
+async function runSimulation(body, userId) {
     const govSettings = {
         id: 'gov',
         incomeTaxRate: body.incomeTaxRate ?? 0.20,
@@ -77,6 +78,8 @@ async function runSimulation(body) {
     let resultId = 'mock_id_' + Date.now();
     try {
         const docRef = await firebase_1.db.collection('simulation_runs').add({
+            name: body.name || `Simulation ${new Date().toLocaleDateString()}`,
+            userId: userId || null,
             createdAt: new Date().toISOString(),
             policies: {
                 incomeTaxRate: govSettings.incomeTaxRate,
@@ -136,13 +139,13 @@ function generateInsight(body) {
     }
     return { success: true, insight };
 }
-async function getSimulationHistory() {
+async function getSimulationHistory(userId) {
     try {
-        const snapshot = await firebase_1.db
-            .collection('simulation_runs')
-            .orderBy('createdAt', 'desc')
-            .limit(20)
-            .get();
+        let query = firebase_1.db.collection('simulation_runs').orderBy('createdAt', 'desc').limit(20);
+        if (userId) {
+            query = firebase_1.db.collection('simulation_runs').where('userId', '==', userId).orderBy('createdAt', 'desc').limit(20);
+        }
+        const snapshot = await query.get();
         const runs = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
@@ -151,5 +154,23 @@ async function getSimulationHistory() {
     }
     catch {
         return { success: true, runs: [] };
+    }
+}
+async function deleteSimulation(id, userId) {
+    try {
+        const ref = firebase_1.db.collection('simulation_runs').doc(id);
+        const snap = await ref.get();
+        if (!snap.exists) {
+            return { success: false, error: 'Not found' };
+        }
+        const data = snap.data();
+        if (userId && data?.userId && data.userId !== userId) {
+            return { success: false, error: 'Forbidden' };
+        }
+        await ref.delete();
+        return { success: true };
+    }
+    catch {
+        return { success: false, error: 'Failed to delete' };
     }
 }

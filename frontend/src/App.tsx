@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import ConfiguratorPage from './pages/ConfiguratorPage';
 import ReportsPage from './pages/ReportsPage';
 import HistoryPage from './pages/HistoryPage';
+import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout';
 import ToastContainer from './components/Toast';
 import { useToast } from './hooks/useToast';
@@ -67,6 +68,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Layout><HistoryPage /></Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Layout><SettingsPage /></Layout>
             </ProtectedRoute>
           }
         />
